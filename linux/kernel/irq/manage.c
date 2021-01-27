@@ -1881,6 +1881,12 @@ int request_threaded_irq(unsigned int irq, irq_handler_t handler,
 	action->name = devname;
 	action->dev_id = dev_id;
 
+	if (irq == 56 || irq == 86) {
+		printk("[+][irq_debug] irq_num: %d, func: %s, line:%d, caller:%pS \n",
+					irq, __func__, __LINE__, (void*)__builtin_return_address(0));
+		dump_stack();
+	}
+
 	retval = irq_chip_pm_get(&desc->irq_data);
 	if (retval < 0) {
 		kfree(action);

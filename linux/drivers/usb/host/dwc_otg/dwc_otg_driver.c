@@ -676,6 +676,38 @@ static int dwc_otg_driver_remove(        struct platform_device *_dev )
  *
  * @param _dev Bus device
  */
+
+static void interrupt_debug_irq_desc(int irq_num)
+{
+	struct irqaction *action;
+	struct irq_desc *desc;
+
+	desc = irq_to_desc(irq_num);
+
+	if (!desc) {
+		pr_err("invalid desc at %s line: %d\n", __func__, __LINE__);
+		return;
+	}
+
+	action = desc->action;
+
+	if(!action) {
+		pr_err("invalid desc at %s line: %d\n", __func__, __LINE__);
+		return;
+	}
+
+	printk("[+] irq_desc debug start \n");
+
+	printk("irq num: %d name: %8s \n", action->irq, action->name);
+	printk("dev_id:0x%x \n", (unsigned int)action->dev_id);
+
+	if (action->handler) {
+		printk("interrupt handler: %pF \n", action->handler);
+	}
+
+	printk("[-] irq_desc debug end\n");
+}
+
 static int dwc_otg_driver_probe(
 #ifdef LM_INTERFACE
 				       struct lm_device *_dev
@@ -914,6 +946,7 @@ static int dwc_otg_driver_probe(
 	retval = request_irq(devirq, dwc_otg_common_irq,
                              IRQF_SHARED,
                              "dwc_otg", dwc_otg_device);
+	interrupt_debug_irq_desc(devirq);
 	if (retval) {
 		DWC_ERROR("request of irq%d failed\n", devirq);
 		retval = -EBUSY;
