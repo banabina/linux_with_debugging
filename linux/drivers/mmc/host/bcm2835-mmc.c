@@ -42,6 +42,9 @@
 
 #include "sdhci.h"
 
+#include <linux/interrupt.h>
+#include <linux/irq.h>
+#include <linux/kernel_stat.h>
 
 #define DRIVER_NAME "mmc-bcm2835"
 
@@ -1053,6 +1056,42 @@ out:
 	return result;
 }
 
+static void interrupt_debug_irq_times(int irq_num)
+{
+	struct irqaction *action;
+	struct irq_desc *desc;
+
+	int cpu_num = 0;
+	unsigned long all_count = 0;
+
+	desc = irq_to_desc(irq_num);
+
+	if (!desc) {
+		pr_err("invalid desc at %s line: %d\n", __func__, __LINE__);
+		return;
+	}
+
+	action = desc->action;
+
+	if (!action) {
+		pr_err("invalid desc at %s line: %d\n", __func__, __LINE__);
+		return;
+	}
+
+	printk("[+] irq_desc count debug start \n");
+	printk("process: %s \n", current->comm);
+
+	printk("irq num: %d name: %8s \n", action->irq, action->name);
+
+	for_each_online_cpu(cpu_num) {
+		all_count |= kstat_irqs_cpu(action->irq, cpu_num);
+		printk("%10u ", kstat_irqs_cpu(action->irq, cpu_num));
+	}
+
+	printk("irq trigger times: %ld ", all_count);
+	printk("[-] irq_desc count debug end \n");
+}
+
 static irqreturn_t bcm2835_mmc_thread_irq(int irq, void *dev_id)
 {
 	struct bcm2835_host *host = dev_id;
@@ -1060,6 +1099,9 @@ static irqreturn_t bcm2835_mmc_thread_irq(int irq, void *dev_id)
 	u32 isr;
 
 	spin_lock_irqsave(&host->lock, flags);
+
+	interrupt_debug_irq_times(irq);
+
 	isr = host->thread_isr;
 	host->thread_isr = 0;
 	spin_unlock_irqrestore(&host->lock, flags);
