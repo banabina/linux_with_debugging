@@ -291,12 +291,25 @@ struct task_struct *__kthread_create_on_node(int (*threadfn)(void *data),
 	struct kthread_create_info *create = kmalloc(sizeof(*create),
 						     GFP_KERNEL);
 
+	int irq_thread_enable = !strncmp(namefmt, "irq", 3);
+	const char *process_name = &namefmt[0];
+
 	if (!create)
 		return ERR_PTR(-ENOMEM);
 	create->threadfn = threadfn;
 	create->data = data;
 	create->node = node;
 	create->done = &done;
+
+	if (process_name)
+		printk("[+] process_name : %s caller:(%pS) \n", process_name, (void *)__builtin_return_address(0));
+
+	if (irq_thread_enable) {
+		void *irq_threadfn = (void*)threadfn;
+
+		printk("[+] irq_thread handler: %pS caller:(%pS) \n", irq_threadfn, (void *)__builtin_return_address(0));
+		dump_stack();
+	}
 
 	spin_lock(&kthread_create_lock);
 	list_add_tail(&create->list, &kthread_create_list);
