@@ -767,10 +767,24 @@ static void check_stack_usage(void)
 static inline void check_stack_usage(void) {}
 #endif
 
+static unsigned int global_func_exe_times = 0;
+
+void trace_function_dummy_call(void)
+{
+	trace_printk("[++] comm:%s, pid:%d, from(%pS) \n",
+			current->comm, current->pid, (void*)__builtin_return_address(0));
+}
+
 void __noreturn do_exit(long code)
 {
 	struct task_struct *tsk = current;
 	int group_dead;
+
+	trace_printk("[++] comm:%s, pid:%d, global_func_exe_times:%d \n",
+			current->comm, current->pid, global_func_exe_times);
+
+	global_func_exe_times++;
+	trace_function_dummy_call();
 
 	profile_task_exit(tsk);
 	kcov_task_exit(tsk);
@@ -816,6 +830,10 @@ void __noreturn do_exit(long code)
 	}
 
 	exit_signals(tsk);  /* sets PF_EXITING */
+	trace_printk("[++] comm:%s, pid:%d, global_func_exe_times:%d \n",
+			current->comm, current->pid, global_func_exe_times);
+
+
 	/*
 	 * Ensure that all new tsk->pi_lock acquisitions must observe
 	 * PF_EXITING. Serializes against futex.c:attach_to_pi_owner().
