@@ -3516,6 +3516,8 @@ static void __sched notrace __schedule(bool preempt)
 
 		trace_sched_switch(preempt, prev, next);
 
+		trace_printk("[+] prev->state: %d, next->state: %d \n", prev->state, next->state);
+
 		/* Also unlocks the rq: */
 		rq = context_switch(rq, prev, next, &rf);
 	} else {
